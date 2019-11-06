@@ -1,0 +1,6 @@
+[Core]
+Name = K8sPlugin
+Module = k8splugin
+
+[Documentation]
+Description = Kubernetes utilities through an Errbot plugin!
