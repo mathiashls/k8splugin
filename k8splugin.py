@@ -1,16 +1,9 @@
 from errbot import BotPlugin, botcmd
 from kubernetes import client, config, watch
 
-import threading
-
-ALL = 3
-ERROR = 2
-WARN = 1
-NONE = 0
 
 class K8sPlugin(BotPlugin):
 
-    PLUGIN_VERBOSITY = ALL
     POD_MONITOR_VERBOSITY = "all"
     POD_MONITOR_SUBSCRIBERS = []
     NAMESPACE_MONITOR_VERBOSITY = "all"
@@ -41,10 +34,6 @@ class K8sPlugin(BotPlugin):
                 self.send(send_to, "Event: %s %s %s" % (event['type'],
                                                         event['object'].kind,
                                                         event['object'].metadata.name))
-
-
-    def teste(self, who, string):
-        self.send(self.build_identifier(who), string)
 
     @botcmd(split_args_with=None)
     def pod_monitoring_verbosity(self, msg, args):
