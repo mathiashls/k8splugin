@@ -45,6 +45,15 @@ class K8sPlugin(BotPlugin):
         self.POD_MONITOR_VERBOSITY = level
 
     @botcmd(split_args_with=None)
+    def namespace_monitoring_verbosity(self, msg, args):
+        if len(args) != 1 or args[0] not in ["all", "warn", "error"]:
+            yield "Can't understand, sorry!"
+            return
+        level = args[0]
+        yield f"Set verbosity level for namespace monitoring to {level}"
+        self.NAMESPACE_MONITOR_VERBOSITY = level
+
+    @botcmd(split_args_with=None)
     def monitor_namespaces(self, msg, args):
         if len(args) != 1 or args[0] not in ["start", "stop"]:
             yield "Can't understand, sorry!"
