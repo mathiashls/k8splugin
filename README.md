@@ -1,5 +1,23 @@
 # Kubernetes Plugin
+Kubernetes utilities through an Errbot plugin!
 
-The K8s plugin is a tool created to be used with the Errbot backend. It allows
-you to interact with your Kubernetes environment using any of the existing
-errbot backends.
+The K8s Plugin is a tool created to be used with the Errbot backend. It allows
+you to interact with your Kubernetes environment using your chat tool.
+
+Tested on:
+* Slack backend
+
+
+## Commands available
+* delete namespace - Delete a namespace.
+* delete pod - Delete a pod. You need to pass the pode name and can (but don't need
+* list contexts - List all contexts from your Kubernetes clusters.
+* list namespaces - List namespaces from a given context (if passed) or from all contexts.
+* list pods - List pods from all namespaces from a given context (if passed) or
+* monitor namespaces - Start or stop monitoring namespaces for this users.
+* monitor pods - Start or stop monitoring pods for this users.
+* monitor status - Output the monitor tasks the user are signed to.
+* namespace monitoring verbosity - Set the verbosity of the namespace monitoring task.
+* pod monitoring verbosity - Set the verbosity of the pod monitoring task.
+* start watchers - Start Pod and Namespace monitoring tasks.
+* stop watchers - Stop Pod and Namespace monitoring tasks.

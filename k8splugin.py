@@ -31,11 +31,17 @@ class K8sPlugin(BotPlugin):
 
     @botcmd
     def start_watchers(self, msg, args):
+        """
+        Start Pod and Namespace monitoring tasks.
+        """
         yield "Starting pod and namespace watchers..."
         self.start_pollers()
 
     @botcmd
     def stop_watchers(self, msg, args):
+        """
+        Stop Pod and Namespace monitoring tasks.
+        """
         yield "Stopping pod and namespace watchers..."
         self.stop_pollers()
 
@@ -62,6 +68,9 @@ class K8sPlugin(BotPlugin):
 
     @botcmd(split_args_with=None)
     def pod_monitoring_verbosity(self, msg, args):
+        """
+        Set the verbosity of the pod monitoring task.
+        """
         if len(args) != 1 or args[0] not in ["all", "warn", "error"]:
             yield "Can't understand, sorry!"
             return
@@ -71,6 +80,9 @@ class K8sPlugin(BotPlugin):
 
     @botcmd(split_args_with=None)
     def namespace_monitoring_verbosity(self, msg, args):
+        """
+        Set the verbosity of the namespace monitoring task.
+        """
         if len(args) != 1 or args[0] not in ["all", "warn", "error"]:
             yield "Can't understand, sorry!"
             return
@@ -80,8 +92,12 @@ class K8sPlugin(BotPlugin):
 
     @botcmd(split_args_with=None)
     def monitor_namespaces(self, msg, args):
+        """
+        Start or stop monitoring namespaces for this users.
+        """
         if len(args) != 1 or args[0] not in ["start", "stop"]:
             yield "Can't understand, sorry!"
+            yield "Usage: monitor namespaces {start,stop}"
             return
 
         person = msg.frm.person
@@ -102,6 +118,9 @@ class K8sPlugin(BotPlugin):
 
     @botcmd(split_args_with=None)
     def monitor_pods(self, msg, args):
+        """
+        Start or stop monitoring pods for this users.
+        """
         if len(args) != 1 or args[0] not in ["start", "stop"]:
             yield "Can't understand, sorry!"
             return
@@ -124,6 +143,9 @@ class K8sPlugin(BotPlugin):
 
     @botcmd
     def monitor_status(self, msg, args):
+        """
+        Output the monitor tasks the user are signed to.
+        """
         person = msg.frm.person
         monitoring = []
         if person in self.POD_MONITOR_SUBSCRIBERS:
@@ -189,6 +211,9 @@ class K8sPlugin(BotPlugin):
 
     @botcmd
     def list_contexts(self, msg, args):
+        """
+        List all contexts from your Kubernetes clusters.
+        """
         contexts, _ = config.list_kube_config_contexts()
         if not contexts:
             yield "No context was found :("
