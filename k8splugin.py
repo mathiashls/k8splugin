@@ -12,6 +12,8 @@ class K8sPlugin(BotPlugin):
 
     def activate(self):
         super().activate()
+        with self.mutable("subscribers") as d:
+            self.subscribers = d
         self.start_poller(15, self.pod_watcher)
 
     def callback_stream(self, stream):
@@ -20,16 +22,19 @@ class K8sPlugin(BotPlugin):
         self.send(stream.identifier, "Content:" + str(stream.fsource.read()))
 
     def pod_watcher(self):
-        pass
         config.load_kube_config()
         v1 = client.CoreV1Api()
         w = watch.Watch()
         for event in w.stream(v1.list_pod_for_all_namespaces):
-            for sub in self.POD_MONITOR_SUBSCRIBERS:
-                send_to = self.build_identifier(sub)
-                self.send(send_to, "Event: %s %s %s" % (event['type'],
-                                                        event['object'].kind,
-                                                        event['object'].metadata.name))
+            pod_name = event['object'].metadata.name
+            for sub in self.subscribers:
+                with self.mutable(sub) as d:
+                    if pod_name in d["monitoring"]:
+                        send_to = self.build_identifier(sub)
+                        self.send(send_to, "Event: %s %s %s (Status: %s)" % (event['type'],
+                                                                             event['object'].kind,
+                                                                             pod_name,
+                                                                             event['object'].status.phase))
 
     def validate_config(self, user):
         send_to = self.build_identifier(user)
@@ -57,6 +62,32 @@ class K8sPlugin(BotPlugin):
             d["verbosity"] = level
 
     @botcmd(split_args_with=None)
+    def set_namespace(self, msg, args):
+        """
+        Set the namespace for the user.
+        """
+        person = msg.frm.person
+        self.validate_config(person)
+
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        namespaces = v1.list_namespace(watch=False)
+
+        if not args:
+            yield "Arguments are missing. Try again!"
+            return
+        else:
+            namespace_name = args[0]
+
+        if namespace_name not in [ns.metadata.name for ns in namespaces.items]:
+            yield "Invalid namespace, sorry!"
+            return
+
+        yield f"Set {person} namespace to {namespace_name}"
+        with self.mutable(person) as d:
+            d["namespace"] = namespace_name
+
+    @botcmd(split_args_with=None)
     def monitor_pod(self, msg, args):
         """
         Start monitoring given pod.
@@ -77,6 +108,10 @@ class K8sPlugin(BotPlugin):
         yield f"{person} will start monitoring {pod_name}"
         with self.mutable(person) as d:
             d["monitoring"].append(pod_name)
+            if person not in self.subscribers:
+                self.subscribers.append(person)
+
+        self["subscribers"] = self.subscribers
 
     @botcmd(split_args_with=None)
     def unmonitor_pod(self, msg, args):
@@ -95,6 +130,10 @@ class K8sPlugin(BotPlugin):
         with self.mutable(person) as d:
             if pod_name in d["monitoring"]:
                 d["monitoring"].remove(pod_name)
+            if len(d["monitoring"]) == 0 and person in self.subscribers:
+                self.subscribers.remove(person)
+
+        self["subscribers"] = self.subscribers
 
     @botcmd
     def monitor_status(self, msg, args):
@@ -135,7 +174,7 @@ class K8sPlugin(BotPlugin):
         yield "Listing pods from all namespaces:"
         ret = v1.list_pod_for_all_namespaces(watch=False)
         for i in ret.items:
-            yield("* %s" % (i.metadata.name))
+            yield("* %s [ns: %s]" % (i.metadata.name, i.metadata.namespace))
 
     @botcmd(split_args_with=None)
     def list_namespaces(self, msg, args):
@@ -190,6 +229,7 @@ class K8sPlugin(BotPlugin):
         """
         person = msg.frm.person
         self.validate_config(person)
+        config.load_kube_config()
         v1 = client.CoreV1Api()
         all_pods = v1.list_pod_for_all_namespaces(watch=False)
         pods_info = {}
@@ -235,6 +275,7 @@ class K8sPlugin(BotPlugin):
         person = msg.frm.person
         self.validate_config(person)
 
+        config.load_kube_config()
         v1 = client.CoreV1Api()
         namespaces = v1.list_namespace(watch=False)
 
@@ -255,3 +296,23 @@ class K8sPlugin(BotPlugin):
             yield api_response
         except ApiException as e:
             yield "Exception when trying to delete namespace: %s" % e
+
+    @botcmd(split_args_with=None)
+    def pod_status(self, msg, args):
+        person = msg.frm.person
+        self.validate_config(person)
+
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+
+        try:
+            pod = args[0]
+            namespace = self[person]["namespace"]
+            response = v1.read_namespaced_pod_status(pod, namespace)
+            status = response.status.phase
+            name = response.metadata.name
+            namespace = response.metadata.namespace
+            yield f"Pod {name} from namespace {namespace} is now {status}"
+
+        except ApiException as error:
+            yield f"Error trying to read pod status: {error}"
