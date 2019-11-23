@@ -21,3 +21,19 @@ Tested on:
 * pod monitoring verbosity - Set the verbosity of the pod monitoring task.
 * start watchers - Start Pod and Namespace monitoring tasks.
 * stop watchers - Stop Pod and Namespace monitoring tasks.
+
+## User config
+
+Each bot user will have it's own config. The available config parameters can be
+checked bellow.
+
+```
+"@username": {
+    "namespace": "default",
+    "monitoring": ["pod1", "pod2"]
+    "verbosity": "error"
+}
+```
+
+* The `namespace` value set in the config will be used by all commands from the
+ bot, if a specific namespace is not passed by the user with the command.
