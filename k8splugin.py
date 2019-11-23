@@ -165,6 +165,33 @@ class K8sPlugin(BotPlugin):
             verbosity = d["verbosity"]
             yield f"Monitoring pods {monitoring} with verbosity {verbosity}"
 
+    @botcmd(split_args_with=None)
+    def list_pods(self, msg, args):
+        """
+        List pods from all namespaces from a given context (if passed) or
+        from all contexts.
+        """
+        person = msg.frm.person
+        self.validate_config(person)
+        if args:
+            context = args[0]
+            contexts, _ = config.list_kube_config_contexts()
+            contexts = [context['name'] for context in contexts]
+            if context not in contexts:
+                yield f"Invalid context name ({context}), listing pods from all contexts."
+                context = None
+            else:
+                yield f"Ok, will use context {context}"
+        else:
+            context = None
+
+        ns = self[person]["namespace"]
+        config.load_kube_config(context=context)
+        v1 = client.CoreV1Api()
+        yield f"Listing pods from namespace {ns}"
+        ret = v1.list_namespaced_pod(namespace=ns)
+        for i in ret.items:
+            yield "* %s" % (i.metadata.name)
 
     @botcmd(split_args_with=None)
     def list_all_pods(self, msg, args):
