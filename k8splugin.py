@@ -87,6 +87,23 @@ class K8sPlugin(BotPlugin):
         with self.mutable(person) as d:
             d["namespace"] = namespace_name
 
+    @botcmd
+    def get_config(self, msg, args):
+        """
+        Get user config
+        """
+        person = msg.frm.person
+        self.validate_config(person)
+        ns = self[person]["namespace"]
+        pods = self[person]["monitoring"]
+        verb = self[person]["verbosity"]
+        yield f""" User: {person}
+        Namespace: {ns}
+        Monitoring pods: {pods}
+        Verbosity: {verb}
+        """
+
+
     @botcmd(split_args_with=None)
     def monitor_pod(self, msg, args):
         """
