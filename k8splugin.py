@@ -2,6 +2,8 @@ from errbot import BotPlugin, botcmd
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 
+import yaml
+
 
 class K8sPlugin(BotPlugin):
 
@@ -15,11 +17,6 @@ class K8sPlugin(BotPlugin):
         with self.mutable("subscribers") as d:
             self.subscribers = d
         self.start_poller(15, self.pod_watcher)
-
-    def callback_stream(self, stream):
-        self.send(stream.identifier, "File request from: " + str(stream.identifier))
-        stream.accept()
-        self.send(stream.identifier, "Content:" + str(stream.fsource.read()))
 
     def pod_watcher(self):
         config.load_kube_config()
@@ -360,3 +357,31 @@ class K8sPlugin(BotPlugin):
 
         except ApiException as error:
             yield f"Error trying to read pod status: {error}"
+
+    def callback_stream(self, stream):
+        self.log.info("YAY IT WORKS")
+        self.send(stream.identifier, "File request from: " + str(stream.identifier))
+        stream.accept()
+        self.send(stream.identifier, "Content:" + str(stream.fsource.read()))
+
+    @botcmd(split_args_with=None)
+    def deploy_to(self, msg, args):
+        person = msg.frm.person
+        self.validate_config(person)
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        namespaces = v1.list_namespace(watch=False)
+        namespace_name = self[person]["namespace"]
+
+        # XXX Will use result from stream as yaml file
+        with open("/home/mathias/Code/cticdroid/deploy_test.yaml") as f:
+            dep = yaml.safe_load(f)
+            k8s_apps_v1 = client.AppsV1Api()
+            resp = k8s_apps_v1.create_namespaced_deployment(
+                body=dep, namespace=namespace_name)
+            yield(f"Deployment created inside namespace {namespace_name}. "
+                  "status='%s'" % resp.metadata.name)
+            self.watch_deployment(person, resp)
+
+    def watch_deployment(self, person, deploy_object):
+        pass
